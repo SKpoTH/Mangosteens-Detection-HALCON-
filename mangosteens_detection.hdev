@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="20.11.1.2">
+<procedure name="main">
+<interface/>
+<body>
+<c>* -----------------&gt; Create Mangosteen Shape Model &lt;---------------</c>
+<c>*** =&gt; Read image as Model Prototype</c>
+<l>input_path := 'Images/Mangosteen Model/'</l>
+<l>input_file := 'mangosteen_model_000'</l>
+<l>read_image (input_img, input_path + input_file)</l>
+<c></c>
+<c>*** =&gt; Create Shape Model</c>
+<l>CreateMangosteenShapeModel (input_img, ModelXLD, ModelID)</l>
+<c></c>
+<c>* -----------------&gt; Init Find Mangosteen &lt;------------------------</c>
+<l>for index := 0 to 9 by 1</l>
+<c>    *** =&gt; Read Test Image</c>
+<l>    read_image (example_img, 'Images/Example/example_' + index$'.03')</l>
+<c>    </c>
+<c>    *** =&gt; Find Object that matched with created model</c>
+<l>    find_aniso_shape_model (example_img, ModelID, rad(-90), rad(90), \
+                            0.2, 1.5, 0.2, 1.5, 0.5, 0, 0.5, 'interpolation', \
+                            0, 1, Row, Column, Angle, ScaleR, ScaleC, Score)</l>
+<c>    </c>
+<c>    *** IF FOUND SOME OBJECT...</c>
+<l>    if (|Score| &gt; 0)</l>
+<c>        * &gt;&gt;&gt; -----------------------  Display Setting ------------------------------</c>
+<l>        dev_open_window_fit_image (example_img, 0, 0, -1, -1, WindowHandle)</l>
+<l>        set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>        dev_set_draw ('margin')</l>
+<l>        dev_set_line_width (4)</l>
+<l>        dev_set_color ('blue')</l>
+<l>        dev_display (example_img)</l>
+<l>        disp_message (WindowHandle, 'Found Object', \
+                      'window', 10, 10, 'black', 'true')</l>
+<c>        * &gt;&gt;&gt; ----------------------------------------------------------------------</c>
+<l>        stop ()</l>
+<c>        </c>
+<c>        *** =&gt; Count number of detected objects</c>
+<l>        tuple_length (Row, num_object)</l>
+<c>        </c>
+<c>        *** =&gt; Loop for visualize each object</c>
+<l>        for i := 0 to num_object-1 by 1</l>
+<l>            dev_display (example_img)</l>
+<c>            </c>
+<c>            *** -&gt; Homogenous Transform</c>
+<l>            ShapeDetectedVisualize (ModelXLD, ObjXLD, \
+                                    ScaleR[i], ScaleC[i], Angle[i], \
+                                    Row[i], Column[i])</l>
+<c>            </c>
+<c>            *** -&gt; Test Mangosteen Area</c>
+<l>            MangosteenOrNot (ObjXLD, example_img, is_mangosteen, SD, result_string)</l>
+<c>            </c>
+<c>            *** -&gt; Display Result</c>
+<l>            dev_set_color (is_mangosteen)</l>
+<l>            dev_display (ObjXLD)   </l>
+<l>            disp_message (WindowHandle, result_string, \
+                          'window', 10, 10, 'black', 'true') </l>
+<l>            stop ()</l>
+<l>            dev_clear_window ()</l>
+<l>        endfor</l>
+<c>        </c>
+<c>    *** IF NOT FOUND ANY OBJECT...</c>
+<l>    else</l>
+<c>        * &gt;&gt;&gt; -----------------------  Display Setting ------------------------------</c>
+<l>        dev_open_window_fit_image (example_img, 0, 0, -1, -1, WindowHandle)</l>
+<l>        dev_display (example_img)</l>
+<l>        disp_message (WindowHandle, 'Not Found Object', \
+                      'window', 10, 10, 'black', 'true') </l>
+<c>        * &gt;&gt;&gt; ----------------------------------------------------------------------</c>
+<l>        stop ()</l>
+<l>    endif</l>
+<c>    </c>
+<c>    * &gt;&gt;&gt; Pause and confirm to finish Display Window</c>
+<l>    dev_close_window ()</l>
+<c> </c>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="CreateMangosteenShapeModel">
+<interface>
+<io>
+<par name="input_img" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="output_model_xld" base_type="iconic" dimension="0"/>
+</oo>
+<oc>
+<par name="output_model" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>*** =&gt; Create Model</c>
+<c>*...Time count</c>
+<l>count_seconds (SecondsCreation1) </l>
+<c>*-&gt; Create Anisotropic Shape Model</c>
+<l>create_aniso_shape_model (input_img, 'auto', rad(-90), rad(90), 'auto', \
+                          0.2, 1.5, 'auto', 0.2, 1.5, 'auto', 'none', \
+                          'use_polarity', 'auto', 'auto', output_model)</l>
+<c>*...Time count</c>
+<l>count_seconds (SecondsCreation2)</l>
+<c>*...Eslape Time</c>
+<l>TimeCreation := SecondsCreation2 - SecondsCreation1</l>
+<c>*-&gt; Create Contour from "output_model"</c>
+<l>get_shape_model_contours (output_model_xld, output_model, 1)</l>
+<c></c>
+<c></c>
+<c>*** &gt;&gt;&gt; Display</c>
+<l>dev_open_window_fit_image (input_img, 0, 0, -1, -1, WindowHandle)</l>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_line_width (4)</l>
+<l>dev_set_color ('blue')</l>
+<l>dev_display (input_img)</l>
+<c></c>
+<l>disp_message (WindowHandle, 'One model created in ' + TimeCreation$'.03f' + ' seconds.', 'window', 10, 10, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>dev_display (output_model_xld)</l>
+<l>stop()</l>
+<l>dev_close_window ()</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="CreateMangosteenShapeModel">
+<parameters>
+<parameter id="input_img"/>
+<parameter id="output_model"/>
+<parameter id="output_model_xld"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="ShapeDetectedVisualize">
+<interface>
+<io>
+<par name="input_model_xld" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="output_model_xld" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="ScaleR" base_type="ctrl" dimension="0"/>
+<par name="ScaleC" base_type="ctrl" dimension="0"/>
+<par name="Angle" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>*** =&gt; Create transformation matrix</c>
+<l>hom_mat2d_identity (HomMat2DIdentity)</l>
+<l>hom_mat2d_scale (HomMat2DIdentity, ScaleR, ScaleC, 0, 0, HomMat2DScale)</l>
+<l>hom_mat2d_rotate (HomMat2DScale, Angle, 0, 0, HomMat2DRotate)</l>
+<l>hom_mat2d_translate (HomMat2DRotate, Row, Column, HomMat2DObject)</l>
+<c></c>
+<c>*** =&gt; Transform model contours for visualization</c>
+<l>affine_trans_contour_xld (input_model_xld, output_model_xld, HomMat2DObject)</l>
+<c></c>
+<c>*** =&gt; Calculate true position of the model origin in the search image</c>
+<l>affine_trans_pixel (HomMat2DObject, 0, 0, RowObject, ColObject)</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="ShapeDetectedVisualize">
+<parameters>
+<parameter id="Angle"/>
+<parameter id="Column"/>
+<parameter id="Row"/>
+<parameter id="ScaleC"/>
+<parameter id="ScaleR"/>
+<parameter id="input_model_xld"/>
+<parameter id="output_model_xld"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="MangosteenOrNot">
+<interface>
+<io>
+<par name="ObjXLD" base_type="iconic" dimension="0"/>
+<par name="input_img" base_type="iconic" dimension="0"/>
+</io>
+<oc>
+<par name="is_mangosteen" base_type="ctrl" dimension="0"/>
+<par name="SD" base_type="ctrl" dimension="0"/>
+<par name="result_string" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<c>*** =&gt; Define Region by Contour</c>
+<l>gen_region_contour_xld (ObjXLD, ObjRegion, 'filled')</l>
+<c></c>
+<c>*** -&gt; Convert from RGB to Grayscale</c>
+<l>rgb1_to_gray (input_img, input_gray_img)</l>
+<c>*** -&gt; Calculate Standard Deviation</c>
+<l>plane_deviation (ObjRegion, input_gray_img, SD)</l>
+<c></c>
+<c>*** =&gt; Define the detected area is Mangosteen? or Not?</c>
+<l>cutoff_SD := 30</l>
+<c></c>
+<l>if (SD &gt; cutoff_SD)</l>
+<c>    * - Too much standard deviation -&gt; Not Mangosteen</c>
+<l>    is_mangosteen := 'red'</l>
+<l>    result_string := 'Not Mangosteen!' + '\nStandard Deviation: ' + SD$'.3'</l>
+<l>else</l>
+<c>    * - Reasonable standard deviation -&gt; Is Mangosteen</c>
+<l>    is_mangosteen := 'blue'</l>
+<l>    result_string := 'A Mangosteen!' + '\nStandard Deviation: ' + SD$'.3'</l>
+<l>endif</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="MangosteenOrNot">
+<parameters>
+<parameter id="ObjXLD"/>
+<parameter id="SD"/>
+<parameter id="input_img"/>
+<parameter id="is_mangosteen"/>
+<parameter id="result_string"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>
